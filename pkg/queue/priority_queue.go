@@ -20,7 +20,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/edwardstudy/k8s-cluster-simulator/pkg/util"
-	kutil "k8s.io/kubernetes/pkg/scheduler/util"
 )
 
 // PriorityQueue stores pods in a priority queue.
@@ -257,8 +256,8 @@ func DefaultComparator(pod0, pod1 *v1.Pod) bool {
 }
 
 func ResourceRequestComparator(pod0, pod1 *v1.Pod) bool {
-	r0 := kutil.GetResourceRequest(pod0)
-	r1 := kutil.GetResourceRequest(pod1)
+	r0 := util.GetResourceRequest(pod0)
+	r1 := util.GetResourceRequest(pod1)
 	return r0.Memory > r1.Memory
 }
 

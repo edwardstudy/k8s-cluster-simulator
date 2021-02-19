@@ -32,7 +32,6 @@ import (
 	l "github.com/edwardstudy/k8s-cluster-simulator/pkg/log"
 	"github.com/edwardstudy/k8s-cluster-simulator/pkg/queue"
 	"github.com/edwardstudy/k8s-cluster-simulator/pkg/util"
-	kutil "k8s.io/kubernetes/pkg/scheduler/util"
 )
 
 // GenericScheduler makes scheduling decision for each given pod in the one-by-one manner.
@@ -152,12 +151,12 @@ func (sched *GenericScheduler) Schedule(
 			// If found a node that can accommodate the pod, ...
 			log.L.Debugf("Selected node %s", result.SuggestedHost)
 			if _, ok := NodeMetricsCache[result.SuggestedHost]; ok {
-				request := kutil.GetResourceRequest(pod)
+				request := util.GetResourceRequest(pod)
 				NodeMetricsCache[result.SuggestedHost].Usage.MilliCPU += request.MilliCPU
 				NodeMetricsCache[result.SuggestedHost].Usage.Memory += request.Memory
 			} else {
 				NodeMetricsCache[result.SuggestedHost] = &NodeMetrics{
-					Usage:       *kutil.GetResourceRequest(pod),
+					Usage:       *util.GetResourceRequest(pod),
 					Allocatable: nodeInfoMap[result.SuggestedHost].AllocatableResource(),
 				}
 			}

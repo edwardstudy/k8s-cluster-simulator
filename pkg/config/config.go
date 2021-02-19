@@ -138,7 +138,7 @@ func buildNodeCondition(clock metav1.Time) []v1.NodeCondition {
 			Message:            "kubelet is posting ready status",
 		},
 		{
-			Type:               v1.NodeOutOfDisk,
+			Type:               v1.NodeDiskPressure,
 			Status:             v1.ConditionFalse,
 			LastHeartbeatTime:  clock,
 			LastTransitionTime: clock,

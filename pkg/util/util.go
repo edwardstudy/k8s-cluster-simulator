@@ -16,12 +16,14 @@ package util
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/cpuguy83/strongerrors"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
+	"k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
 // BuildResourceList parses a map from resource names to quantities (in strings) to a
@@ -94,14 +96,14 @@ func ResourceListMin(r1, r2 v1.ResourceList) v1.ResourceList {
 	return min
 }
 
-func ResourceListMultiply(r1 v1.ResourceList, factor float32) v1.ResourceList {
-	res := r1.DeepCopy()
-	for r1Key, r1Val := range r1 {
-		r1Val.Multiply(factor)
-		res[r1Key] = r1Val
-	}
-	return res
-}
+//func ResourceListMultiply(r1 v1.ResourceList, factor float32) v1.ResourceList {
+//	res := r1.DeepCopy()
+//	for r1Key, r1Val := range r1 {
+//		r1Val.Multiply(factor)
+//		res[r1Key] = r1Val
+//	}
+//	return res
+//}
 
 // ResourceListSub returns the substraction r1-r2
 func ResourceListSub(r1, r2 v1.ResourceList) v1.ResourceList {
@@ -143,8 +145,10 @@ func ResourceListLE(r1, r2 v1.ResourceList) bool {
 func ResourceListLEWithFactor(r1, r2 v1.ResourceList, factor float64) bool {
 	for r2Key, r2Val := range r2 {
 		r1Val := r1[r2Key]
-		v1 := r1Val.Get()
-		v2 := r2Val.Get() * factor
+		// Help to support in v1.20: https://github.com/kubernetes/kubernetes/commit/c06c1121d1c07f72cf0d35c76a1637814efe9144
+		v1, _ := strconv.ParseFloat(r1Val.String(), 64)
+		v2, _ := strconv.ParseFloat(r2Val.String(), 64)
+		v2 = v2 * factor
 		if v1 > v2 {
 			return false
 		}
@@ -155,8 +159,10 @@ func ResourceListLEWithFactor(r1, r2 v1.ResourceList, factor float64) bool {
 func ResourceListGEWithFactor(r1, r2 v1.ResourceList, factor float64) bool {
 	for r2Key, r2Val := range r2 {
 		r1Val := r1[r2Key]
-		v1 := r1Val.Get()
-		v2 := r2Val.Get() * factor
+		// Help to support in v1.20: https://github.com/kubernetes/kubernetes/commit/c06c1121d1c07f72cf0d35c76a1637814efe9144
+		v1, _ := strconv.ParseFloat(r1Val.String(), 64)
+		v2, _ := strconv.ParseFloat(r2Val.String(), 64)
+		v2 = v2 * factor
 		if v1 < v2 {
 			return false
 		}
@@ -190,4 +196,18 @@ func PodKey(pod *v1.Pod) (string, error) {
 // PodKeyFromNames builds a key from the namespace and pod name.
 func PodKeyFromNames(namespace string, name string) string {
 	return fmt.Sprintf("%s/%s", namespace, name)
+}
+
+func GetResourceRequest(pod *v1.Pod) *nodeinfo.Resource {
+	result := &nodeinfo.Resource{}
+	for _, container := range pod.Spec.Containers {
+		result.Add(container.Resources.Requests)
+	}
+
+	// take max_resource(sum_pod, any_init_container)
+	for _, container := range pod.Spec.InitContainers {
+		result.SetMaxResource(container.Resources.Requests)
+	}
+
+	return result
 }
